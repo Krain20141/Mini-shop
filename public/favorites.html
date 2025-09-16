@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>ISU — Favorites</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand-wrap">
+      <img src="/assets/logo.png" class="logo-img" alt="ISU logo">
+      <div class="brand">ISU</div>
+    </div>
+    <nav class="nav">
+      <a href="/">Shop</a>
+      <a href="/favorites.html" class="active">⭐ Favorites <span id="favCount">0</span></a>
+      <button id="openCartBtn">🛒 Cart <span id="cartCount">0</span></button>
+    </nav>
+  </header>
+
+  <main class="wrap">
+    <h1>⭐ Your Favorites</h1>
+    <div id="favorites-list" class="grid"></div>
+  </main>
+
+  <!-- Cart drawer -->
+  <aside class="drawer" id="cartDrawer" aria-hidden="true">
+    <div class="drawer-head">
+      <h2>Your Cart</h2>
+      <button id="closeCartBtn">✕</button>
+    </div>
+<ul id="cart-items" class="cart-list"></ul>
+<div id="cart-total" class="cart-total">Total: $0.00</div>
+
+<label for="paymentProvider" class="small">Payment method</label>
+<select id="paymentProvider" style="width:100%;margin:8px 0;padding:10px;border-radius:10px;border:1px solid var(--line);background:#0f0f0f;color:var(--text)">
+  <option value="stripe">Stripe (Card)</option>
+  <option value="adyen">Adyen</option>
+  <option value="payone">Payone</option>
+  <option value="paysafe">Paysafe</option>
+  <option value="computop">Computop</option>
+  <option value="paymenttree">Paymenttree</option>
+</select>
+
+<button class="btn" onclick="checkout()">Checkout</button>
+  </aside>
+
+  <script src="script.js"></script>
+</body>
+</html>

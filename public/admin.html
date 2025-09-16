@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>ISU — Admin</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    /* small admin-only tweaks that match your dark theme */
+    .admin-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin:12px 0}
+    .table{width:100%;border-collapse:collapse}
+    .table th,.table td{border:1px solid var(--line);padding:10px}
+    .table th{background:#0f0f0f;text-align:left}
+    .stack{display:flex;flex-direction:column;gap:10px}
+    input,button,select{padding:8px;border-radius:10px;border:1px solid var(--line);background:#0f0f0f;color:var(--text)}
+    button:hover{border-color:var(--accent);box-shadow:0 0 8px #0f0}
+    .order--cancelled{opacity:.6; filter:grayscale(.4)}
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="topbar">
+    <div class="brand-wrap">
+      <img src="/assets/logo.png" class="logo-img" alt="ISU logo">
+      <div class="brand">ISU — Admin</div>
+    </div>
+    <nav class="nav">
+      <a href="/">Shop</a>
+      <a href="/favorites.html">⭐ Favorites</a>
+      <button id="logoutBtnHeader">Logout</button>
+    </nav>
+  </header>
+
+  <!-- Main content -->
+  <main class="wrap">
+    <h1>Admin Panel</h1>
+
+    <!-- Login -->
+    <div id="loginSection" class="admin-card">
+      <h2>Login</h2>
+      <div class="stack">
+        <input id="username" placeholder="username" />
+        <input id="password" type="password" placeholder="password" />
+        <button id="loginBtn">Login</button>
+      </div>
+    </div>
+
+    <!-- Admin area -->
+    <div id="adminSection" class="admin-card" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+        <h2 style="margin:0">Products</h2>
+        <button id="logoutBtnAdmin">Logout</button>
+      </div>
+
+      <!-- Add product -->
+      <form id="productForm" class="admin-card" style="margin-top:12px">
+        <div class="stack">
+          <input name="title" placeholder="Title" required />
+          <input name="price" placeholder="Price" type="number" step="0.01" required />
+          <input name="inventory" placeholder="Inventory" type="number" />
+          <input type="file" name="image" />
+          <button type="submit">Add product</button>
+        </div>
+      </form>
+
+      <!-- Products table -->
+      <div id="products" class="admin-card"></div>
+
+      <h2>Orders</h2>
+      <div id="orders" class="admin-card"></div>
+    </div>
+  </main>
+
+  <script>
+  async function getJSON(url, opts={}){ const r = await fetch(url, opts); return r.json(); }
+
+  async function login(){
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value.trim();
+    const res = await fetch('/api/admin/login',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({username,password})
+    });
+    if(res.ok) initAdmin(); else alert('Login failed');
+  }
+  document.getElementById('loginBtn').addEventListener('click', login);
+
+  async function initAdmin(){
+    const me = await fetch('/api/admin/me');
+    if(!me.ok){
+      document.getElementById('loginSection').style.display='block';
+      document.getElementById('adminSection').style.display='none';
+      return;
+    }
+    document.getElementById('loginSection').style.display='none';
+    document.getElementById('adminSection').style.display='block';
+    loadProducts(); loadOrders();
+  }
+
+  // bind both logout buttons safely
+  const logout = async ()=>{ await fetch('/api/admin/logout',{method:'POST'}); location.reload(); };
+  const logoutHeaderBtn = document.getElementById('logoutBtnHeader');
+  const logoutAdminBtn  = document.getElementById('logoutBtnAdmin');
+  if (logoutHeaderBtn) logoutHeaderBtn.addEventListener('click', logout);
+  if (logoutAdminBtn)  logoutAdminBtn.addEventListener('click', logout);
+
+  async function loadProducts(){
+    const res = await fetch('/api/products'); const products = await res.json();
+    const container = document.getElementById('products');
+    if(!products.length){
+      container.innerHTML = '<p class="small">No products yet. Add one above.</p>';
+      return;
+    }
+    const rows = products.map(p=>`
+      <tr>
+        <td>${p.id}</td>
+        <td>${escapeHtml(p.title)}</td>
+        <td>$${Number(p.price).toFixed(2)}</td>
+        <td>${p.inventory}</td>
+        <td>
+          <button onclick="deleteProduct(${p.id})">Delete</button>
+        </td>
+      </tr>`).join('');
+    container.innerHTML = `
+      <table class="table">
+        <thead><tr><th>ID</th><th>Title</th><th>Price</th><th>Inventory</th><th>Actions</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
+
+  async function loadOrders(){
+    const res = await fetch('/api/orders'); const orders = await res.json();
+    const c = document.getElementById('orders');
+    if(!orders.length){ c.innerHTML = '<p class="small">No orders yet.</p>'; return; }
+    c.innerHTML = orders.map(o=>{
+      const buttons =
+        '<button onclick="updateOrder('+o.id+',\'processing\')">Processing</button>' +
+        '<button onclick="updateOrder('+o.id+',\'shipped\')">Shipped</button>' +
+        '<button onclick="updateOrder('+o.id+',\'delivered\')">Delivered</button>' +
+        '<button style="background:#900;color:#fff" onclick="updateOrder('+o.id+',\'cancelled\')">❌ Cancel</button>' +
+        (o.status !== 'paid' ? '<button style="background:#333;border:1px solid #552; color:#f99" onclick="deleteOrder('+o.id+')">🗑️ Delete</button>' : '');
+      return `
+        <div class="admin-card ${o.status==='cancelled' ? 'order--cancelled' : ''}">
+          <div><strong>Order #${o.id}</strong> — status: ${escapeHtml(o.status)} — total: $${(o.total_cents/100).toFixed(2)}</div>
+          <div class="small">Items: ${escapeHtml(JSON.stringify(o.items))}</div>
+          <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">${buttons}</div>
+        </div>`;
+    }).join('');
+  }
+
+  async function updateOrder(id, status){
+    await fetch('/api/orders/' + id, {
+      method:'PUT',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ status })
+    });
+    loadOrders();
+  }
+
+  async function deleteProduct(id){
+    if(!confirm('Delete product?')) return;
+    await fetch('/api/products/'+id, { method: 'DELETE' });
+    loadProducts();
+  }
+
+  async function deleteOrder(id){
+    if(!confirm('Permanently delete this order? This cannot be undone.')) return;
+    const res = await fetch('/api/orders/' + id, { method: 'DELETE' });
+    if (!res.ok) {
+      const err = await res.json().catch(()=>({error:'Unknown error'}));
+      alert('Delete failed: ' + (err.error || res.statusText));
+      return;
+    }
+    loadOrders();
+  }
+
+  // Add product form
+  document.getElementById('productForm').addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const f = new FormData(e.target);
+    const res = await fetch('/api/products', { method:'POST', body: f });
+    if(res.ok){ alert('Created'); loadProducts(); e.target.reset(); } else { alert('Error'); }
+  });
+
+  // Safe HTML escaping
+  function escapeHtml(s){
+    return String(s ?? '').replace(/[&<>"']/g, m => (
+      { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;', "'":'&#39;' }[m]
+    ));
+  }
+
+  // init on load
+  document.addEventListener('DOMContentLoaded', initAdmin);
+  </script>
+</body>
+</html>

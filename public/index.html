@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>ISU — Shop</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+	<img src="/assets/logo.png" alt="ISU Background Logo" class="hero-logo">
+  <header class="topbar">
+    <div class="brand-wrap">
+      <img src="/assets/logo.png" class="logo-img" alt="ISU logo">
+      <div class="brand">ISU</div>
+    </div>
+    <nav class="nav">
+      <a href="/" class="active">Shop</a>
+      <a href="/favorites.html">⭐ Favorites <span id="favCount">0</span></a>
+      <button id="openCartBtn">🛒 Cart <span id="cartCount">0</span></button>
+    </nav>
+  </header>
+
+  <main class="wrap">
+    <div id="productGrid" class="grid"></div>
+  </main>
+
+  <!-- Cart drawer -->
+  <aside class="drawer" id="cartDrawer" aria-hidden="true">
+    <div class="drawer-head">
+      <h2>Your Cart</h2>
+      <button id="closeCartBtn">✕</button>
+    </div>
+    <ul id="cart-items" class="cart-list"></ul>
+    <div id="cart-total" class="cart-total">Total: $0.00</div>
+    <button class="btn" onclick="checkout()">Checkout</button>
+  </aside>
+
+  <script src="script.js"></script>
+</body>
+</html>
