@@ -6,3 +6,17 @@
   <p>Thank you! Your order is being processed.</p>
   <a class="btn" href="/">Back to Shop</a>
 </body></html>
+<script>
+(async () => {
+  const params = new URLSearchParams(location.search);
+  const order = params.get('order');
+  if (!order) return;
+  try {
+    const r = await fetch('/api/verify-mollie?order=' + encodeURIComponent(order));
+    const j = await r.json();
+    console.log('Payment status:', j.status);
+  } catch(e) {
+    console.log('Verify failed', e);
+  }
+})();
+</script>

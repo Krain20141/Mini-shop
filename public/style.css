@@ -58,3 +58,46 @@ a,button{cursor:pointer}
   max-width: 60%;           /* scale for desktop */
   height: auto;
 }
+/* Admin login styles */
+.login-box {
+  max-width: 340px;
+  margin: 80px auto;
+  padding: 24px;
+  background: rgba(20, 20, 20, 0.95);
+  border-radius: 14px;
+  box-shadow: 0 0 15px #0ff;
+  text-align: center;
+}
+
+.login-logo {
+  width: 90px;
+  margin-bottom: 16px;
+}
+
+.login-input {
+  width: 100%;
+  margin: 8px 0;
+  padding: 12px;
+  border: 1px solid #0ff;
+  border-radius: 10px;
+  background: #111;
+  color: #0ff;
+  font-size: 15px;
+}
+
+.login-btn {
+  width: 100%;
+  padding: 12px;
+  margin-top: 12px;
+  border: none;
+  border-radius: 10px;
+  background: #0ff;
+  color: #000;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.login-btn:hover {
+  background: #00cccc;
+}

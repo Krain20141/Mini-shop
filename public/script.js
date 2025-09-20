@@ -1,6 +1,6 @@
 // ===============================
 // ISU Shop - script.js
-// Cart + Favorites + Product Render + Checkout
+// Cart + Favorites + Product Render + Checkout (Mollie)
 // ===============================
 
 // ---- State (localStorage) ----
@@ -49,7 +49,7 @@ function renderCart(){
     li.innerHTML = `
       <div>
         <div><strong>${escapeHtml(it.name)}</strong></div>
-        <div class="small">$${it.price.toFixed(2)}</div>
+        <div class="small">€${it.price.toFixed(2)}</div>
       </div>
       <div class="qty">
         <button onclick="updateQuantity(${it.id}, ${it.quantity-1})">-</button>
@@ -60,7 +60,7 @@ function renderCart(){
     `;
     list.appendChild(li);
   });
-  totalEl.textContent = "Total: $" + total.toFixed(2);
+  totalEl.textContent = "Total: €" + total.toFixed(2);
   updateBadges();
 }
 
@@ -73,11 +73,11 @@ function toggleFavorite(product){
     favorites.push(product);
   }
   saveFavorites();
-  renderFavorites(); // no-op on shop page
+  renderFavorites();
 }
 function renderFavorites(){
   const container = document.getElementById("favorites-list");
-  if(!container) return; // only on favorites.html
+  if(!container) return;
   container.innerHTML = "";
 
   if(favorites.length === 0){
@@ -92,7 +92,7 @@ function renderFavorites(){
       <img src="${p.image || ''}" alt="">
       <h3>${escapeHtml(p.name)}</h3>
       <div class="row">
-        <div class="price">$${p.price.toFixed(2)}</div>
+        <div class="price">€${p.price.toFixed(2)}</div>
         <div>
           <button class="btn" onclick='addToCart(${JSON.stringify(p)})'>Add to Cart</button>
           <button class="btn ghost" onclick='toggleFavorite(${JSON.stringify(p)})'>Unstar</button>
@@ -106,7 +106,7 @@ function renderFavorites(){
 // ---- Products (Shop) ----
 async function loadProducts(){
   const grid = document.getElementById("productGrid");
-  if(!grid) return; // not on index.html
+  if(!grid) return;
 
   grid.innerHTML = `<div class="card">Loading...</div>`;
   try{
@@ -127,7 +127,7 @@ async function loadProducts(){
         <img src="${product.image}" alt="">
         <h3>${escapeHtml(product.name)}</h3>
         <div class="row">
-          <div class="price">$${product.price.toFixed(2)}</div>
+          <div class="price">€${product.price.toFixed(2)}</div>
           <div>
             <button class="btn" onclick='addToCart(${JSON.stringify(product)})'>🛒</button>
             <button class="btn ghost" onclick='toggleFavorite(${JSON.stringify(product)})'>⭐</button>
@@ -141,39 +141,35 @@ async function loadProducts(){
   }
 }
 
-// ---- Checkout ----
+// ---- Checkout (Mollie only) ----
 async function checkout(){
   if(cart.length === 0){ alert("Your cart is empty."); return; }
-  const email = prompt("Enter your email for receipt:"); if(!email) return;
-
-  const providerEl = document.getElementById("paymentProvider");
-  const provider = providerEl ? providerEl.value : "stripe";
+  const email = prompt("Enter your email for receipt:"); 
+  if(!email) return;
 
   const items = cart.map(i => ({ id: i.id, quantity: i.quantity }));
 
   const resp = await fetch("/api/checkout", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ items, customer_email: email, provider })
+    body: JSON.stringify({ items, customer_email: email, provider: "mollie" })
   });
 
   const data = await resp.json();
   if (data.url) {
-    window.location = data.url; // redirect to hosted payment page
+    window.location = data.url; // Mollie hosted checkout
   } else {
     alert("Checkout failed: " + (data.error || "Unknown error"));
   }
 }
 
-
 // ---- UI: cart drawer + init ----
-function openDrawer(){ const d = document.getElementById("cartDrawer"); if(d){ d.classList.add("open"); d.setAttribute("aria-hidden","false"); } }
-function closeDrawer(){ const d = document.getElementById("cartDrawer"); if(d){ d.classList.remove("open"); d.setAttribute("aria-hidden","true"); } }
+function openDrawer(){ const d=document.getElementById("cartDrawer"); if(d){ d.classList.add("open"); d.setAttribute("aria-hidden","false"); } }
+function closeDrawer(){ const d=document.getElementById("cartDrawer"); if(d){ d.classList.remove("open"); d.setAttribute("aria-hidden","true"); } }
 
 function escapeHtml(s){ return (s||"").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
 
 document.addEventListener("DOMContentLoaded", () => {
-  // hook buttons
   const openBtn = document.getElementById("openCartBtn");
   const closeBtn = document.getElementById("closeCartBtn");
   if(openBtn) openBtn.addEventListener("click", openDrawer);
@@ -181,6 +177,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   updateBadges();
   renderCart();
-  renderFavorites(); // safe on shop page (does nothing)
-  loadProducts();    // safe on favorites page (does nothing)
+  renderFavorites();
+  loadProducts();
 });
