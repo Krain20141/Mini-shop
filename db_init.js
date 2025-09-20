@@ -7,6 +7,7 @@ const DB_FILE = process.env.DB_PATH || 'shop.db';
 const db = new sqlite3.Database(DB_FILE);
 
 db.serialize(() => {
+  // --- Tables ---
   db.run(`
     CREATE TABLE IF NOT EXISTS admins (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -39,7 +40,7 @@ db.serialize(() => {
     )
   `);
 
-  // Add new columns (safe if already exist)
+  // --- Safe add columns (no-op if they already exist) ---
   db.get(`SELECT 1 FROM pragma_table_info('orders') WHERE name='provider'`, (err, row) => {
     if (!row) db.run(`ALTER TABLE orders ADD COLUMN provider TEXT`);
   });
@@ -47,23 +48,24 @@ db.serialize(() => {
     if (!row) db.run(`ALTER TABLE orders ADD COLUMN provider_payment_id TEXT`);
   });
 
-  const username = 'admin';
-  const password = 'admin123';
+  // --- Admin seed/reset from ENV (defaults: admin/admin123) ---
+  const username = process.env.ADMIN_USERNAME || 'admin';
+  const password = process.env.ADMIN_PASSWORD || 'admin123';
+  const hash = bcrypt.hashSync(password, 10);
 
   db.get(`SELECT id FROM admins WHERE username = ?`, [username], (err, row) => {
     if (err) {
       console.error('DB error:', err.message);
       return db.close();
     }
-    const hash = bcrypt.hashSync(password, 10);
     if (row) {
-      console.log('⚠️ Admin exists — resetting password...');
+      console.log(`⚠️ Admin "${username}" exists — resetting password...`);
       return db.run(
         `UPDATE admins SET password_hash = ? WHERE username = ?`,
         [hash, username],
         (e) => {
           if (e) console.error('Password reset error:', e.message);
-          else console.log('✅ Password reset: username=admin, password=admin123');
+          else console.log(`✅ Password reset: username=${username}, password=${password}`);
           db.close();
         }
       );
@@ -73,7 +75,7 @@ db.serialize(() => {
       [username, hash],
       function (e) {
         if (e) console.error('Insert admin error:', e.message);
-        else console.log('✅ Admin created: username=admin, password=admin123');
+        else console.log(`✅ Admin created: username=${username}, password=${password}`);
         db.close();
       }
     );
